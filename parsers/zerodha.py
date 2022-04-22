@@ -1,8 +1,9 @@
-from typing import Callable, Dict, List
+from typing import Dict, List
 from matplotlib.animation import FuncAnimation
 import matplotlib.pyplot as plt
 import seaborn as sns
 from pandas import DataFrame
+
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
@@ -18,6 +19,7 @@ class Zerodha:
         self.__symbol = symbol
         plt.rcParams.update({'font.size': 8})
         self.__fig, self.__ax = plt.subplots()
+        self.__setup_environment()
     
     def __setup_environment(self):
         options = Options()
@@ -26,6 +28,9 @@ class Zerodha:
         options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.99 Safari/537.36')
         self.driver = webdriver.Chrome(options=options)
         self.driver.get('https://kite.zerodha.com')
+
+        self.__login_user()
+        self.__search_symbol()
 
     def __login_user(self):
         try:
@@ -98,6 +103,12 @@ class Zerodha:
             WebDriverWait(self.driver, 10).until(expected_conditions.presence_of_element_located((By.XPATH, r'/html/body/div[1]/div[2]/div[1]/div/div[1]/ul/div/li[1]')))
             m = self.driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div[1]/div/div[1]/ul/div/li[1]")
             a.move_to_element(m).perform()
+        except Exception as e:
+            print(e)
+            self.driver.quit()
+
+    def __click_marketDepth(self) -> None:
+        try:
             self.driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div[1]/div/div[1]/ul/div/li[1]/span[3]/button[4]").click()
             WebDriverWait(self.driver, 10).until(expected_conditions.presence_of_element_located((By.XPATH, r'/html/body/div[1]/div[5]/div/div/div[2]/div/div/div[1]/div[2]')))
             self.driver.find_element(By.XPATH, "/html/body/div[1]/div[5]/div/div/div[2]/div/div/div[1]/div[2]").click()
@@ -112,6 +123,7 @@ class Zerodha:
             total_bid = self.driver.find_element(By.XPATH, "/html/body/div[1]/div[5]/div/div/div[2]/div/div/div[1]/div[1]/table[1]/tfoot")
             ask = self.driver.find_element(By.XPATH, "/html/body/div[1]/div[5]/div/div/div[2]/div/div/div[1]/div[1]/table[2]/tbody")
             total_ask = self.driver.find_element(By.XPATH, "/html/body/div[1]/div[5]/div/div/div[2]/div/div/div[1]/div[1]/table[2]/tfoot")
+            self.cmp = self.driver.find_element(By.XPATH, "/html/body/div[1]/div[5]/div/div/div[1]/div/div[2]/div[2]/span/span[1]").text
             res = [bid.text, total_bid.text, ask.text, total_ask.text]
             return res
         except Exception as e:
@@ -125,7 +137,7 @@ class Zerodha:
         bid, ask = self.__create_df(bidD, askD)
         plt.cla()
         plt.setp(self.__ax.get_xticklabels(), rotation=30, horizontalalignment='right')
-        self.__ax.set_title(f"Order book for {self.__symbol}")
+        self.__ax.set_title(f"Order book for {self.__symbol} - {self.cmp}")
         self.__ax.set_xlabel("Prices")
         self.__ax.set_ylabel("Qty")
         sns.ecdfplot(x="Prices", weights="Qty", stat="count", complementary=True, data=bid, ax=self.__ax, color='g')
@@ -134,14 +146,12 @@ class Zerodha:
     def __plot_df(self) -> None:
         ani = FuncAnimation(fig=self.__fig, func = self.__animate, frames=220, interval=1000)
         plt.show()
-
-    async def plotOrderBook(self) -> None:
+    
+    async def plotDepthGraph(self) -> None:
         """Gets order book from zerodha and plots orderbooks in matplotlib.
         """
         try:
-            self.__setup_environment()
-            self.__login_user()
-            self.__search_symbol()
+            self.__click_marketDepth()
             self.__plot_df()
         except Exception as e:
             print(e)
