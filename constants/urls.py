@@ -38,3 +38,6 @@ class MoneyControlRSSURL:
 class KotakSecuritiesURL:
     basePDFLink =  "https://www.kotaksecurities.com/ksweb/php/showpdf.php?q="
     reportLink = "https://www.kotaksecurities.com/ktrade/kreport.exe?"
+
+class ZerodhaURL:
+    loginURL = "https://kite.zerodha.com"

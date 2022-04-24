@@ -33,7 +33,7 @@ async def main():
     #     # MinMax.getMinMax(df=df, col_name="Close", getMinima=True, window_range=20, callback=print_df, smoothing=14),
     #     # HurstExponent.hurstExponent(df, 100, print_message)
     #     # Samco.get_orderbook("RELIANCE", print_message),
-        Zerodha("AUBANK").plotDepthGraph()
+        Zerodha("RELIANCE").plotOrderMap()
     )
 
 asyncio.run(main())

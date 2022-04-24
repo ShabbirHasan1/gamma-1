@@ -1,1 +1,1 @@
-from .exceptions import InvalidMethodException, UncallableMethodException, NoDataException, KeyNotFoundException, InvalidDataTypeException, LoginFailedException
+from .exceptions import InvalidMethodException, UncallableMethodException, NoDataException, KeyNotFoundException, InvalidDataTypeException, LoginFailedException, MarketClosedException

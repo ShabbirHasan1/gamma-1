@@ -4,9 +4,6 @@ import requests
 from bs4 import BeautifulSoup as bs4
 import base64
 import datetime
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions
-from selenium.webdriver.common.by import By
 
 from exceptions import UncallableMethodException
 from constants import ICICIDirectURL, KotakSecuritiesURL
