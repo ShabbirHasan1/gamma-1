@@ -6,6 +6,7 @@ from models import MinMax, HurstExponent
 
 import json
 import asyncio
+import sys
 
 def print_message(message):
     print("-"*50)
@@ -25,6 +26,7 @@ def write_json(message):
 async def main():
     #df = await Prices.getHistory("aubank", "1m", "1wk")
     #print(df.head())
+    symbol: str = sys.argv[1]
     await runAsync.runParallel(
     #     # MoneyControlRSS.getData("TN", "title", print_message), 
     #     # ICICIDirect("TI", print_message).parse(),
@@ -33,7 +35,7 @@ async def main():
     #     # MinMax.getMinMax(df=df, col_name="Close", getMinima=True, window_range=20, callback=print_df, smoothing=14),
     #     # HurstExponent.hurstExponent(df, 100, print_message)
     #     # Samco.get_orderbook("RELIANCE", print_message),
-        Zerodha("RELIANCE").plotOrderMap()
+        Zerodha(symbol.upper()).plotOrderMap()
     )
 
 asyncio.run(main())

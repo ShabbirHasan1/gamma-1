@@ -1,10 +1,5 @@
-from typing import Dict, List
-from matplotlib.animation import FuncAnimation
-import matplotlib.pyplot as plt
-import seaborn as sns
+from typing import List, Dict, Tuple
 from pandas import DataFrame, Timestamp
-from collections import deque
-from numpy import log10, log
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -13,25 +8,15 @@ from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
 
-from constants import ZerodhaVariables, ZerodhaURL
-from constants import ZerodhaXPaths
-from exceptions import LoginFailedException, MarketClosedException
+from constants import ZerodhaVariables, ZerodhaURL, ZerodhaXPaths
+from exceptions import LoginFailedException, MarketClosedException, EngineNotStartedException
+from .meta import dbHandler
 
-class Zerodha:
-    def __init__(self, symbol: str):
-        self.__symbol = symbol
-        
-        plt.rcParams.update({'font.size': 8})
-        self.__fig, self.__ax = plt.subplots()
-        self.__bidX = deque(maxlen=ZerodhaVariables.dequeMaxLen)
-        self.__bidY = deque(maxlen=ZerodhaVariables.dequeMaxLen)
-        self.__askX = deque(maxlen=ZerodhaVariables.dequeMaxLen)
-        self.__askY = deque(maxlen=ZerodhaVariables.dequeMaxLen)
-        self.__bidVolume = deque(maxlen=ZerodhaVariables.dequeMaxLen)
-        self.__askVolume = deque(maxlen=ZerodhaVariables.dequeMaxLen)
-        self.__mergedX = deque(maxlen=ZerodhaVariables.dequeMaxLen)
-        self.__mergedY = deque(maxlen=ZerodhaVariables.dequeMaxLen)
-
+class ZerodhaEngine(dbHandler):
+    def __init__(self, scrip: str, verbose: bool = False):
+        self.__scrip = scrip
+        self.__verbose = verbose
+        self.__searched: bool = False
         self.__prevBidPrice: float = 0
         self.__prevAskPrice: float = 0
         self.__prevBidQty: int = 0
@@ -41,20 +26,19 @@ class Zerodha:
         self.__sellExecuted: bool = False
         self.__buyExecuted: bool = False
 
-        self.__setup_environment()
+        dbHandler.__init__(self)
     
-    def __setup_environment(self):
+    def __setup_environment(self) -> None:
         options = Options()
         options.add_argument(ZerodhaVariables.headlessArgument)
         options.add_argument(ZerodhaVariables.windowSize)
         options.add_argument(ZerodhaVariables.userAgent)
         self.__driver = webdriver.Chrome(options=options)
         self.__driver.get(ZerodhaURL.loginURL)
+        if self.__verbose:
+            print("[+] Chrome setup done.")
 
-        self.__login_user()
-        self.__search_symbol()
-
-    def __login_user(self):
+    def __login_user(self) -> None:
         try:
             self.__driver.find_element(By.ID, ZerodhaXPaths.userInputID).send_keys(ZerodhaVariables.username)
             self.__driver.find_element(By.ID, ZerodhaXPaths.passInputID).send_keys(ZerodhaVariables.password)
@@ -62,23 +46,51 @@ class Zerodha:
             WebDriverWait(self.__driver, 10).until(expected_conditions.presence_of_element_located((By.XPATH, ZerodhaXPaths.pinInputID)))
             self.__driver.find_element(By.XPATH, ZerodhaXPaths.pinInputID).send_keys(ZerodhaVariables.pin)
             self.__driver.find_element(By.XPATH, ZerodhaXPaths.verifyButton).click()
+            if self.__verbose:
+                print(f"[+] User {ZerodhaVariables.username} logged in successfully.")
         except Exception as e:
-            self.__driver.get_screenshot_as_file("screenshot_login.png")
+            if self.__verbose:
+                self.__driver.get_screenshot_as_file("screenshot_login.png")
+                print(e)
             self.__driver.quit()
             raise LoginFailedException
     
     def __search_symbol(self) -> None:
         try:
             WebDriverWait(self.__driver, 10).until(expected_conditions.presence_of_element_located((By.XPATH, ZerodhaXPaths.searchInput)))
-            self.__driver.find_element(By.XPATH, ZerodhaXPaths.searchInput).send_keys(self.__symbol)
+            self.__driver.find_element(By.XPATH, ZerodhaXPaths.searchInput).send_keys(self.__scrip)
             a = ActionChains(self.__driver)
             WebDriverWait(self.__driver, 10).until(expected_conditions.presence_of_element_located((By.XPATH, ZerodhaXPaths.selectSymbol)))
             m = self.__driver.find_element(By.XPATH, ZerodhaXPaths.selectSymbol)
             a.move_to_element(m).perform()
+            self.__searched = True
+            if self.__verbose:
+                print(f"[+] Searching for {self.__scrip}")
         except Exception as e:
-            print(e)
+            if self.__verbose:
+                self.__driver.get_screenshot_as_file("screenshot_search.png")
+                print(e)
             self.__driver.quit()
-
+    
+    def __handle_search(self, scrip: str = None) -> None:
+        try:
+            if self.__searched:
+                WebDriverWait(self.__driver, 10).until(expected_conditions.presence_of_element_located((By.XPATH, ZerodhaXPaths.orderBookSearch)))
+                self.__driver.find_element(By.XPATH, ZerodhaXPaths.orderBookSearch).send_keys(scrip)
+                a = ActionChains(self.__driver)
+                WebDriverWait(self.__driver, 10).until(expected_conditions.presence_of_element_located((By.XPATH, ZerodhaXPaths.orderBookResult)))
+                m = self.__driver.find_element(By.XPATH, ZerodhaXPaths.orderBookResult)
+                a.move_to_element(m).perform()
+                if self.__verbose:
+                    print(f"[+] Changing symbol from {self.__scrip} to {scrip}.")
+            else:
+                self.__search_symbol()
+        except Exception as e:
+            if self.__verbose:
+                self.__driver.get_screenshot_as_file("screenshot_handle.png")
+                print(e)
+            self.__driver.quit()
+    
     def __click_marketDepth(self) -> None:
         try:
             self.__driver.find_element(By.XPATH, ZerodhaXPaths.marketDepthButton).click()
@@ -86,9 +98,11 @@ class Zerodha:
             self.__driver.find_element(By.XPATH, ZerodhaXPaths.viewMoreButton).click()
             WebDriverWait(self.__driver, 10).until(expected_conditions.presence_of_element_located((By.XPATH, ZerodhaXPaths.orderBookElement)))
         except Exception as e:
-            print(e)
+            if self.__verbose:
+                self.__driver.get_screenshot_as_file("screenshot_marketDepth.png")
+                print(e)
             self.__driver.quit()
-
+    
     def __get_data(self) -> List[str]:
         try:
             bid = self.__driver.find_element(By.XPATH, ZerodhaXPaths.bidsTables)
@@ -98,12 +112,16 @@ class Zerodha:
             self.__ltp = self.__driver.find_element(By.XPATH, ZerodhaXPaths.ltp).text
             self.__ltq = self.__driver.find_element(By.XPATH, ZerodhaXPaths.ltq).text
             res = [bid.text, total_bid.text, ask.text, total_ask.text, self.__ltp, self.__ltq]
+            if self.__verbose:
+                print(f"[+] Got data.")
             return res
         except Exception as e:
-            print(e)
+            if self.__verbose:
+                self.__driver.get_screenshot_as_file("screenshot_data.png")
+                print(e)
             self.__driver.quit()
 
-    def __parse_depth(self, res: List[str]) -> Dict:
+    def __parse_depth(self, res: List[str]) -> Tuple[Dict, Dict]:
         bid_text = res[0]
         ask_text = res[2]
         bid: Dict = {}
@@ -129,9 +147,11 @@ class Zerodha:
             bidTemp['price'] = bidPrice
             bid[bidPrice] = bidTemp
             ask[askPrice] = askTemp
+        if self.__verbose:
+            print(f"[+] Parsed depth data.")
         return bid, ask
-
-    def __create_df(self, bid: Dict, ask: Dict) -> DataFrame:
+    
+    def __create_df(self, bid: Dict, ask: Dict) -> Tuple[DataFrame, DataFrame]:
         bidPrices: List[float] = []
         bidOrders: List[int] = []
         bidQty: List[int] = []
@@ -200,130 +220,61 @@ class Zerodha:
         bidDf['Timestamp'] = Timestamp.now()
         askDf['Timestamp'] = Timestamp.now()
 
+        if self.__verbose:
+            print(f"Created bid & ask dataframes.")
+
         return bidDf, askDf
-    
-    def __animate_depthgraph(self, i):
-        text = self.__get_data()
-        bidD, askD = self.__parse_depth(text)
-        bid, ask = self.__create_df(bidD, askD)
-        plt.cla()
-        
-        plt.setp(self.__ax.get_xticklabels(), rotation=30, horizontalalignment='right')
-        plt.grid(linestyle='-', linewidth=0.5)
-        self.__ax.set_title(f"Depth graph for {self.__symbol} - {self.__ltp}")
-        self.__ax.set_xlabel("Prices")
-        self.__ax.set_ylabel("Qty")
-        sns.ecdfplot(x="Prices", weights="Qty", stat="count", complementary=True, data=bid, ax=self.__ax, color='g')
-        sns.ecdfplot(x="Prices", weights="Qty", stat="count", data=ask, ax=self.__ax, color='r')
 
-    def __animate_ordermap(self, i):
-        text = self.__get_data()
-        bidD, askD = self.__parse_depth(text)
-        bid, ask = self.__create_df(bidD, askD)
-        
-        self.__bidX.append(bid['Timestamp'][0])
-        self.__bidY.append(bid['Prices'].max())
-        self.__askX.append(ask['Timestamp'][0])
-        self.__askY.append(ask['Prices'].min())
-        self.__buyLtq += bid['ltq'][0]
-        self.__askLtq += ask['ltq'][0]
-        
-        bid.merge(ask, on='Prices', how='inner')
-        self.__mergedX.append(bid['Timestamp'][0])
-        self.__mergedY.append(bid['Prices'])
+    def __get_cmp(self) -> str:
+        try:
+            if self.__verbose:
+                print(f"Got LTP: {self.__ltp}")
+            return self.__ltp
+        except Exception as e:
+            if self.__verbose:
+                print(e)
+            raise EngineNotStartedException
 
-        if self.__buyExecuted:
-            self.__bidVolume.append(log(bid['ltq'][0]) * 10)
-            self.__askVolume.append(0)
-            self.__buyExecuted = False
-        elif self.__sellExecuted:
-            self.__askVolume.append(log(ask['ltq'][0]) * 10)
-            self.__bidVolume.append(0)
-            self.__sellExecuted = False
+    def __engineHandler(self, scrip: str = None) -> None:
+        if self.__searched:
+            self.__handle_search(scrip)
         else:
-            self.__bidVolume.append(0)
-            self.__askVolume.append(0)
-
-        plt.cla()
-        plt.setp(self.__ax.get_xticklabels(), rotation=45, horizontalalignment='right')
-        plt.grid(linestyle='-', linewidth=0.5)
-
-        spread = "{:.2f}".format(ask['Prices'].min() - bid['Prices'].max())
-        
-        self.__ax.set_title(f"Microstructure {self.__symbol} - {self.__ltp}: Spread - {spread}: Delta- [{(self.__buyLtq - self.__askLtq)}]")
-        self.__ax.set_xlabel("Timestamp")
-        self.__ax.set_ylabel("Prices")
-        self.__ax.set_ylim([bid['Prices'].min(), ask['Prices'].max()])
-        self.__ax.plot(list(self.__bidX), list(self.__bidY), color='green')
-        self.__ax.plot(list(self.__askX), list(self.__askY), color='red')
-        self.__ax.scatter(list(self.__bidX), list(self.__bidY), s=list(self.__bidVolume), color='b', marker='o', alpha=0.5)
-        self.__ax.scatter(list(self.__askX), list(self.__askY), s=list(self.__askVolume), color='r', marker='o', alpha=0.5)
-
-    def __animate_liquidityMap(self, i):
-        text = self.__get_data()
-        bidD, askD = self.__parse_depth(text)
-        bid, ask = self.__create_df(bidD, askD)
-        bid['type'] = "bid"
-        ask['type'] = "ask"
-        bid.merge(ask, on='type', how='inner')
-        my_palette = {"bid": "Greens", "ask": "Reds"}
-        
-        plt.cla()
-        plt.setp(self.__ax.get_xticklabels(), rotation=45, horizontalalignment="right")
-        plt.grid(linestyle='-', linewidth=0.5)
-
-        self.__ax.set_title(f"Liquidity Map for {self.__symbol} - {self.__ltp}")
-        self.__ax.set_xlabel("Quantity")
-        self.__ax.set_ylabel("Prices")
-        # self.__ax.set_ylim([merged['Prices'].min(), merged['Prices'].max()])
-        sns.barplot(data=bid, x="Prices", y="Qty", palette = my_palette[bid['type']], hue="replicate", ax=self.__ax)
-
-    def __plot_ordermap(self):
-        ani = FuncAnimation(fig=self.__fig, func=self.__animate_ordermap, frames=220, interval=1000)
-        plt.show()
-
-    def __plot_depthgraph(self) -> None:
-        ani = FuncAnimation(fig=self.__fig, func = self.__animate_depthgraph, frames=220, interval=1000)
-        plt.show()
-    
-
-    def __plot_liquidityMap(self) -> None:
-        ani = FuncAnimation(fig=self.__fig, func=self.__animate_liquidityMap, frames=220, interval=1000)
-        plt.show()
-
-    async def plotLiquidityMap(self) -> None:
-        try:
+            self.__setup_environment()
+            self.__login_user()
+            self.__search_symbol()
             self.__click_marketDepth()
-            self.__plot_liquidityMap()
-        except Exception as e:
-            print(e)
-            self.__driver.quit()
+        res: List[str] = self.__get_data()
+        self.__bid, self.__ask = self.__parse_depth(res)
     
-    async def plotDepthGraph(self) -> None:
-        """Gets market depth from zerodha and plots depth graph in matplotlib.
+    def getCMP(self, scrip: str = None) -> str:
+        """Returns the current market price for a scrip.
+
+        Args:
+            scrip (str, optional): Used when changing the symbol. Defaults to None
+
+        Returns:
+            str: CMP of the scrip, is in str. As it might contain characters like "," which can throw an exception while converting to int.
         """
-        try:
-            self.__click_marketDepth()
-            self.__plot_depthgraph()
-        except Exception as e:
-            print(e)
-            self.__driver.quit()
-    
-    async def plotOrderMap(self) -> None:
-        """Gets orderbook from Zerodha and plots LBO map in matplotlib.
+        if scrip is not None:
+            self.__engineHandler(scrip)
+            return self.__get_cmp()
+        else:
+            self.__engineHandler()
+            return self.__get_cmp()
+
+    def getData(self, scrip: str = None) -> Tuple[DataFrame, DataFrame]:
+        """Returns two dataframes for for bids and asks table.
+
+        Args:
+            scrip (str, optional): Used when changing the symbol. Defaults to None.
+
+        Returns:
+            Tuple[DataFrame, DataFrame]: Returns a tuple of two dataframes i.e. bid and ask.
         """
-        try:
-            self.__click_marketDepth()
-            self.__plot_ordermap()
-        except Exception as e:
-            print(e)
-            self.__driver.quit()
-    
-    async def placeBuyOrder(self) -> None:
-        return
-
-    async def placeSellOrder(self) -> None:
-        return
-
-    async def placeGTTOrder(self) -> None:
-        return
+        if scrip is not None:
+            self.__engineHandler(scrip)
+            return self.__create_df(self.__bid, self.__ask)
+        else:
+            self.__engineHandler()
+            return self.__create_df(self.__bid, self.__ask)
+        

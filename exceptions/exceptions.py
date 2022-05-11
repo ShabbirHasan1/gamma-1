@@ -25,3 +25,11 @@ class LoginFailedException(Exception):
 class MarketClosedException(Exception):
     def __init__(self, message):
         super().__init__(f"function {str(message)} is suppose to run during market hours.")
+
+class NoDataException(Exception):
+    def __init__(self):
+        super().__init__("No data provided for it to process.")
+
+class EngineNotStartedException(Exception):
+    def __init__(self):
+        super().__init__("You need to start the engine first.")

@@ -15,3 +15,5 @@ class ZerodhaXPaths:
     ltp = "/html/body/div[1]/div[5]/div/div/div[1]/div/div[2]/div[2]/span/span[1]"
     ltq = '/html/body/div[1]/div[5]/div/div/div[2]/div/div/div[2]/div[4]/div[1]/span'
     orderBookElement = '/html/body/div[1]/div[5]/div/div/div[2]/div/div/div[1]/div[1]/table[1]/tbody/tr[8]'
+    orderBookSearch = '/html/body/div[1]/div[5]/div/div/div[1]/div/div[1]/div/div/div/input'
+    orderBookResult = '/html/body/div[1]/div[5]/div/div/div[1]/div/div[1]/div/ul/div/li[1]'
