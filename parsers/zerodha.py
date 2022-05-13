@@ -159,22 +159,28 @@ class Zerodha:
             self.__prevBidQty = bestBidQty 
             self.__prevAskPrice = askDf.Prices.min()
             self.__prevAskQty = bestAskQty
+            self.__prevExecuted = 0
             askDf['ltq'] = 0
             bidDf['ltq'] = 0
 
         else:
-            if self.__prevAskPrice > askDf.Prices.min():
+            if self.__prevAskPrice > askDf.Prices.min() or self.__prevAskQty > bestAskQty:
                 self.__sellExecuted = True
-            elif self.__prevBidPrice < bidDf.Prices.max():
+                self.__prevExecuted = -1
+            elif self.__prevBidPrice < bidDf.Prices.max() or self.__prevBidQty > bestBidQty:
+                self.__prevExecuted = 1
                 self.__buyExecuted = True
             else:
-                if self.__prevAskQty > bestAskQty:
-                    self.__sellExecuted == True
-                elif self.__prevBidQty > bestBidQty:
+                if self.__prevExecuted > 0:
                     self.__buyExecuted = True
+                    self.__prevExecuted = 1
+                elif self.__prevExecuted < 0:
+                    self.__sellExecuted = True
+                    self.__prevExecuted = -1
                 else:
                     askDf['ltq'] = 0
                     bidDf['ltq'] = 0
+
             
             self.__prevBidPrice = bidDf.Prices.max()
             self.__prevAskPrice = askDf.Prices.min()
@@ -256,8 +262,8 @@ class Zerodha:
         self.__ax.set_ylim([bid['Prices'].min(), ask['Prices'].max()])
         self.__ax.plot(list(self.__bidX), list(self.__bidY), color='green')
         self.__ax.plot(list(self.__askX), list(self.__askY), color='red')
-        self.__ax.scatter(list(self.__bidX), list(self.__bidY), s=list(self.__bidVolume), color='b', marker='o', alpha=0.5)
-        self.__ax.scatter(list(self.__askX), list(self.__askY), s=list(self.__askVolume), color='r', marker='o', alpha=0.5)
+        self.__ax.scatter(list(self.__bidX), list(self.__bidY), s=list(self.__bidVolume), color='b', marker='o', alpha=0.2)
+        self.__ax.scatter(list(self.__askX), list(self.__askY), s=list(self.__askVolume), color='r', marker='o', alpha=0.2)
 
     def __animate_liquidityMap(self, i):
         text = self.__get_data()
