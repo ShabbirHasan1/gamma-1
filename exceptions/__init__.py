@@ -1,1 +1,1 @@
-from .exceptions import InvalidMethodException, UncallableMethodException, NoDataException, KeyNotFoundException, InvalidDataTypeException, LoginFailedException, MarketClosedException, NoDataException, EngineNotStartedException
+from .exceptions import InvalidMethodException, UncallableMethodException, NoDataException, KeyNotFoundException, InvalidDataTypeException, LoginFailedException, MarketClosedException, NoDataException, EngineNotStartedException, NoSymbolException, NotDefinedException

@@ -180,7 +180,6 @@ class Zerodha:
                 else:
                     askDf['ltq'] = 0
                     bidDf['ltq'] = 0
-
             
             self.__prevBidPrice = bidDf.Prices.max()
             self.__prevAskPrice = askDf.Prices.min()

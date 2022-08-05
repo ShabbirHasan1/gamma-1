@@ -33,3 +33,15 @@ class NoDataException(Exception):
 class EngineNotStartedException(Exception):
     def __init__(self):
         super().__init__("You need to start the engine first.")
+
+class NoSymbolException(Exception):
+    def __init__(self):
+        super().__init__("No symbols provided.")
+
+class NotDefinedException(Exception):
+    def __init__(self, message):
+        super().__init__(f"Keyword {str(message)} is not defined")
+
+class InvalidImplementationException(Exception):
+    def __init__(self, message):
+        super().__init__(message)

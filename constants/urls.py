@@ -41,3 +41,20 @@ class KotakSecuritiesURL:
 
 class ZerodhaURL:
     loginURL = "https://kite.zerodha.com"
+
+class NSEScripsURL:
+    auto = "https://www1.nseindia.com/content/indices/ind_niftyautolist.csv"
+    bank = "https://www1.nseindia.com/content/indices/ind_niftybanklist.csv"
+    consdu = "https://www1.nseindia.com/content/indices/ind_niftyconsumerdurableslist.csv"
+    finserv = "https://www1.nseindia.com/content/indices/ind_niftyfinancelist.csv"
+    finserv50 = "https://www1.nseindia.com/content/indices/ind_niftyfinancialservices25_50list.csv"
+    fmcg = "https://www1.nseindia.com/content/indices/ind_niftyfmcglist.csv"
+    health = "https://www1.nseindia.com/content/indices/ind_niftyhealthcarelist.csv"
+    it = "https://www1.nseindia.com/content/indices/ind_niftyitlist.csv"
+    media = "https://www1.nseindia.com/content/indices/ind_niftymedialist.csv"
+    metal = "https://www1.nseindia.com/content/indices/ind_niftymetallist.csv"
+    oil = "https://www1.nseindia.com/content/indices/ind_niftyoilgaslist.csv"
+    pharma = "https://www1.nseindia.com/content/indices/ind_niftypharmalist.csv"
+    privatebank = "https://www1.nseindia.com/content/indices/ind_nifty_privatebanklist.csv"
+    psu = "https://www1.nseindia.com/content/indices/ind_niftypsubanklist.csv"
+    realty = "https://www1.nseindia.com/content/indices/ind_niftyrealtylist.csv"
