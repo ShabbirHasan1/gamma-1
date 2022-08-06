@@ -4,8 +4,8 @@ from engines import PatternEngine
 
 class TestPatterns(unittest.TestCase):   
     def test(self):
-        expected = 'white'
-        testString = "color = white;"
+        expected = False
+        testString = "color = white; color == black;"
         test = PatternEngine().test(testString)
         self.assertEqual(test, expected)
 

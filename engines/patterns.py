@@ -182,9 +182,57 @@ class PatternEngine:
                     # of it.
                     if i < 1:
                         raise InvalidImplementationException(f'Invalid implementation of "{Symbols.EQUAL}"')
-                    elif statement[i-1] == Symbols.EQUAL:
+                    elif statement[i+1] == Symbols.EQUAL:
                         # Here we check, not assign
-                        return
+                        # we kinda do a similar thing here too. first we check if the left and right variable are defined
+                        if statement[i+2] in self._variables:
+                            # we are checking value from a reserved keyword here.
+                            if statement[i-1] in self._variables:
+                                # checking against a reserved variable here.
+                                # so we just grab the values for both and check
+                                if self._variables[statement[i+2]] == self._variables[statement[i-1]]:
+                                    # its true
+                                    return True
+                                else:
+                                    return False
+                            elif statement[i-1] in self._containers.keys():
+                                # checking a reserved keyword with a defined variable.
+                                if self._containers[statement[i-1]] == self._variables[statement[i+2]]:
+                                    return True
+                                else:
+                                    return False
+
+                        elif statement[i+2] in self._containers.keys():
+                            # we are checking for defined variables here
+                            if statement[i-1] in self._variables:
+                                if self._containers[statement[i+2]] == self._variables[statement[i-1]]:
+                                    return True
+                                else:
+                                    return False
+                            elif statement[i-1] in self._containers.keys():
+                                if self._containers[statement[i-1]] == self._containers[statement[i+2]]:
+                                    return True
+                                else:
+                                    return False
+                        
+                        else:
+                            # we now have a definite value here
+                            if statement[i-1] in self._variables:
+                                if self._variables[statement[i-1]] == statement[i+2]:
+                                    return True
+                                else:
+                                    return False
+                            elif statement[i-1] in self._containers.keys():
+                                if self._containers[statement[i-1]] == statement[i+2]:
+                                    return True
+                                else:
+                                    return False
+                            else:
+                                if statement[i-1] == statement[i+2]:
+                                    return True
+                                else:
+                                    return False
+
                     else:
                         # we assign here.
                         # One can assign to either containers or new variables
@@ -203,5 +251,16 @@ class PatternEngine:
                                 self._variables[statement[i-1]] = self._variables[statement[i+1]]
                             else:
                                 self._variables[statement[i-1]] = statement[i+1]
+                                
+                        elif statement[i-1] == Symbols.EQUAL:
+                            pass
+
+                        else:
+                            if statement[i+1] in self._containers.keys():
+                                self._containers[statement[i-1]] = self._containers[statement[i+1]]
+                            elif statement[i+1] in self._variables:
+                                self._containers[statement[i-1]] = self._variables[statement[i+1]]
+                            else:
+                                self._containers[statement[i-1]] = statement[i+1]
 
         return self._variables['color']
