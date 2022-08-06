@@ -35,6 +35,7 @@ class Symbols:
     LESS_THAN: str = "<"
     GREATER_THAN: str = ">"
     SEMICOLON: str = ";"
+    DOUBLE_QUOTE: str = '"'
 
 class PatternEngine:
     def __init__(self, ticker: str = None, pricesDf: pd.DataFrame = None):
@@ -71,7 +72,8 @@ class PatternEngine:
             "{": Symbols.METHOD_OPEN,
             "}": Symbols.METHOD_CLOSE,
             "==": Symbols.EQUAL_EQUAL,
-            ";": Symbols.SEMICOLON
+            ";": Symbols.SEMICOLON,
+            '"': Symbols.DOUBLE_QUOTE
         }
 
     @lru_cache
@@ -144,16 +146,16 @@ class PatternEngine:
         statements: List = []
         statement: List = []
         for tok in tokens:
-            if tok != Symbols.SEMICOLON:
+            if tok != Symbols.SEMICOLON and tok != Symbols.METHOD_CLOSE:
                 statement.append(tok)
             else:
+                statement.append(tok)
                 statements.append(statement)
                 statement = []
         
         return statements if callback is None else callback(statements)
 
     def test(self, string: str = None):
-        string = "color = black; if (color == black);"
         toks: List = self._getTokens(string)
         statements = self._getStatements(toks)
        
@@ -169,7 +171,37 @@ class PatternEngine:
             method(somevalue) { code }
                     or
             method(somevalue).Variable 
+
+        Ok now we pretty much have all the statements and now we can start making sense of them.
         '''
 
         for statement in statements:
-            print(f'Statement: {statement}')
+            for i in range(len(statement)):
+                if statement[i] == Symbols.EQUAL:
+                    # if only one equal we assign, if double then we check. For any case we want either one or two tokens in front
+                    # of it.
+                    if i < 1:
+                        raise InvalidImplementationException(f'Invalid implementation of "{Symbols.EQUAL}"')
+                    elif statement[i-1] == Symbols.EQUAL:
+                        # Here we check, not assign
+                        return
+                    else:
+                        # we assign here.
+                        # One can assign to either containers or new variables
+                        if statement[i-1] in self._variables:
+                            # we have reserved container.
+                            # we also need to check that if the assigned value is definite or a variable.
+                            # if definite we can simply assign them, or else we have to get that value from the variable
+                            # and then assign it.
+                            if statement[i+1] in self._containers.keys():
+                                # we are assigning a already defined variable.
+                                try:
+                                    self._variables[statement[i-1]] = self._containers[statement[i+1]]
+                                except KeyError:
+                                    raise InvalidImplementationException(f'{statement[i+1]} not defined.')
+                            elif statement[i+1] in self._variables:
+                                self._variables[statement[i-1]] = self._variables[statement[i+1]]
+                            else:
+                                self._variables[statement[i-1]] = statement[i+1]
+
+        return self._variables['color']
