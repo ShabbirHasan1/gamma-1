@@ -4,6 +4,7 @@ from parsers import Zerodha
 from utils import runAsync, Prices
 from models import MinMax, HurstExponent
 from engines import PatternEngine
+from helpers import StocknoteAPI
 
 import json
 import asyncio
@@ -28,7 +29,9 @@ async def main():
     #df = await Prices.getHistory("aubank", "1m", "1wk")
     #print(df.head())
     #symbol: str = sys.argv[1]
-    PatternEngine().test()
+    #PatternEngine().test()
+    StocknoteAPI().run()
+
     await runAsync.runParallel(
     #     # MoneyControlRSS.getData("TN", "title", print_message), 
     #     # ICICIDirect("TI", print_message).parse(),

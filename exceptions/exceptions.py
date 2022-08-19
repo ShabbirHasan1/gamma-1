@@ -45,3 +45,7 @@ class NotDefinedException(Exception):
 class InvalidImplementationException(Exception):
     def __init__(self, message):
         super().__init__(message)
+
+class StocknoteAPIException(Exception):
+    def __init__(self, message):
+        super().__init__(message)
