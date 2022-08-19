@@ -1,4 +1,4 @@
-# metaTerm
+# gamma
 Well I don't know what I wanna build with this.
 
 I wasn't really consistent in developing this project completely and that made me leave some files incomplete and also I added many modules, which I have to read again to make sense of it.
